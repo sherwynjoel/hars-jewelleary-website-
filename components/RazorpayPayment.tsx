@@ -40,6 +40,39 @@ export default function RazorpayPayment({ onSuccess, onError }: RazorpayPaymentP
     setLoading(true)
 
     try {
+      // Check if we're in development mode with placeholder credentials
+      const isDevelopment = process.env.NODE_ENV === 'development'
+      const hasPlaceholderKeys = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID?.includes('placeholder')
+      
+      if (isDevelopment && hasPlaceholderKeys) {
+        // For development, create order directly without payment
+        const orderResponse = await fetch('/api/orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            items: items.map(item => ({
+              productId: item.id,
+              quantity: item.quantity,
+              price: item.price
+            })),
+            total: getTotalWithTax()
+          })
+        })
+
+        if (orderResponse.ok) {
+          const orderData = await orderResponse.json()
+          toast.success(`Development mode: Order #${orderData.id.slice(-8).toUpperCase()} created successfully!`)
+          clearCart()
+          onSuccess()
+        } else {
+          const errorData = await orderResponse.json()
+          throw new Error(errorData.error || 'Failed to create order')
+        }
+        return
+      }
+
       // Load Razorpay script
       const scriptLoaded = await loadRazorpayScript()
       if (!scriptLoaded) {
@@ -60,7 +93,11 @@ export default function RazorpayPayment({ onSuccess, onError }: RazorpayPaymentP
       })
 
       if (!response.ok) {
-        throw new Error('Failed to create payment order')
+        const errorData = await response.json().catch(() => ({}))
+        if (response.status === 500 && errorData.error?.includes('Authentication failed')) {
+          throw new Error('Payment gateway not configured. Please contact support or try again later.')
+        }
+        throw new Error(`Failed to create payment order: ${errorData.error || 'Unknown error'}`)
       }
 
       const { orderId, amount, currency, key } = await response.json()
@@ -141,13 +178,17 @@ export default function RazorpayPayment({ onSuccess, onError }: RazorpayPaymentP
     }
   }
 
+  const isDevelopment = process.env.NODE_ENV === 'development'
+  const hasPlaceholderKeys = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID?.includes('placeholder')
+  const isDevMode = isDevelopment && hasPlaceholderKeys
+
   return (
     <button
       onClick={handlePayment}
       disabled={loading || items.length === 0}
       className="w-full btn-primary py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      {loading ? 'Processing...' : 'Proceed to Pay'}
+      {loading ? 'Processing...' : isDevMode ? 'Proceed to Pay (Dev Mode)' : 'Proceed to Pay'}
     </button>
   )
 }
