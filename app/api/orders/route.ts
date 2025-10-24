@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     console.log('Order API: Order total:', orderTotal)
 
     // Create order
-    console.log('Order API: Creating order with items:', items.map(item => ({
+    console.log('Order API: Creating order with items:', items.map((item: any) => ({
       productId: item.productId,
       quantity: item.quantity,
       price: item.price
