@@ -26,9 +26,9 @@ export default function Navigation() {
             <div className="w-10 h-10 bg-gradient-to-br from-gold-400 to-gold-600 rounded-full flex items-center justify-center">
               <Crown className="w-6 h-6 text-white" />
             </div>
-            <span className="font-serif text-xl sm:text-2xl font-bold text-gray-900">
+            <div className="font-serif text-xl sm:text-2xl font-bold text-gray-900">
               Hars Jewellery
-            </span>
+            </div>
           </Link>
 
           {/* Desktop Navigation */}
